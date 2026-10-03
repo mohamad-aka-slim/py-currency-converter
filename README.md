@@ -20,7 +20,8 @@ account, no third-party dependencies (standard library only).
 - **Nice syntax** — pass numbers, phrases (`"100 USD to EUR"`), or symbols
   (`"$100"`, `"€"`), in any case, with `to` / `in` / `->` / `→` separators.
 - **Zero dependencies** — installs in a blink, nothing to break.
-- **CLI included** — `currency-converter 100 USD EUR` right after `pip install`.
+- **CLI included** — `currency-converter 100 USD EUR` right after `pip install`
+  (the `currency_converter` spelling is installed too).
 - **Friendly errors** — typos get a *"did you mean 'USD'?"* suggestion.
 - **Historical rates** — any date since 1999, e.g. `CurrencyConverter(date="2024-06-28")`.
 - **Tested** (37 tests) and typed (`py.typed` included).
@@ -105,6 +106,28 @@ BGN  Bulgarian lev
 ```
 
 Quote expressions containing `$` — otherwise your shell expands them.
+
+The command installs under **both spellings** — `currency-converter` and
+`currency_converter` — plus `python -m currency_converter`, so it always
+matches the one your fingers remember. See [A note on the name](#a-note-on-the-name).
+
+## A note on the name
+
+Python cannot import hyphens (`import currency-converter` is a syntax error),
+so — like `youtube-dl` (`import youtube_dl`) or `python-dotenv`
+(`import dotenv`) — the name is spelled differently depending on where you
+use it:
+
+| Where                | Name                   |
+| -------------------- | ---------------------- |
+| `pip install`        | `py-currency-converter` |
+| `import` in Python   | `currency_converter`   |
+| shell command        | `currency-converter` **or** `currency_converter` |
+| `python -m`          | `currency_converter`   |
+
+For `pip` itself the separator never matters: `py_currency_converter`,
+`py-currency-converter` and `Py-Currency-Converter` are all the same package
+to the installer.
 
 ## Where the data comes from
 

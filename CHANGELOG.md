@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   separators `to` / `in` / `->` / `=>` / `→` / `>`, thousands commas.
 - Historical rates via `CurrencyConverter(date="YYYY-MM-DD")`.
 - Friendly typos: `UnknownCurrencyError` with did-you-mean suggestions.
-- `currency-converter` CLI with `--date`, `--precision`, `--base`, `--list`.
+- `currency-converter` CLI with `--date`, `--precision`, `--base`, `--list`
+  (installed as `currency_converter` too, and runnable via
+  `python -m currency_converter`).
 - ECB reference rates via frankfurter.dev; standard library only.
 - Test suite (37 tests), type markers (`py.typed`), CI on Python 3.9–3.13.

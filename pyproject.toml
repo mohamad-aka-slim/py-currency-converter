@@ -34,8 +34,10 @@ Homepage = "https://github.com/<username>/py-currency-converter"
 Issues = "https://github.com/<username>/py-currency-converter/issues"
 Changelog = "https://github.com/<username>/py-currency-converter/blob/main/CHANGELOG.md"
 
+# Both spellings install, so it never matters which one muscle memory types.
 [project.scripts]
 currency-converter = "currency_converter.cli:main"
+currency_converter = "currency_converter.cli:main"
 
 [project.optional-dependencies]
 dev = [
