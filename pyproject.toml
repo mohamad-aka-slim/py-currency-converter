@@ -1,0 +1,62 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "py-currency-converter"
+version = "0.1.0"
+description = "Friendly currency conversion for Python and the terminal, powered by ECB reference rates."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Mohamad" }]
+keywords = ["currency", "converter", "exchange-rates", "money", "finance", "cli"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Utilities",
+]
+dependencies = []
+
+# TODO: replace <username> with your GitHub username before publishing.
+[project.urls]
+Homepage = "https://github.com/<username>/py-currency-converter"
+Issues = "https://github.com/<username>/py-currency-converter/issues"
+Changelog = "https://github.com/<username>/py-currency-converter/blob/main/CHANGELOG.md"
+
+[project.scripts]
+currency-converter = "currency_converter.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "pytest-cov",
+    "ruff",
+    "build",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["currency_converter"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["currency_converter"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
