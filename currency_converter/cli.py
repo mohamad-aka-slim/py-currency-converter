@@ -13,8 +13,19 @@ import argparse
 import sys
 
 from . import __version__
-from .converter import CurrencyConverter, parse_expression
+from .converter import CurrencyConverter, parse_amount, parse_expression
 from .exceptions import CurrencyConverterError
+
+
+def _precision(text):
+    """argparse type for --precision: an integer between 0 and 10."""
+    try:
+        value = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{text!r} is not an integer") from None
+    if not 0 <= value <= 10:
+        raise argparse.ArgumentTypeError(f"must be between 0 and 10, got {value}")
+    return value
 
 
 def build_parser():
@@ -45,10 +56,10 @@ def build_parser():
     parser.add_argument(
         "-p",
         "--precision",
-        type=int,
+        type=_precision,
         default=2,
         metavar="N",
-        help="decimal places to show (default: 2)",
+        help="decimal places to show, 0-10 (default: 2)",
     )
     parser.add_argument(
         "-l",
@@ -93,8 +104,9 @@ def _parse_request(tokens):
     if len(tokens) == 1:
         return parse_expression(tokens[0])
     if len(tokens) == 3:
+        # parse_amount, not float(), so "1.000,50" and "1,000" read correctly.
         try:
-            amount = float(tokens[0].replace(",", ""))
+            amount = parse_amount(tokens[0])
         except ValueError:
             raise ValueError(f"{tokens[0]!r} is not a number") from None
         return amount, tokens[1], tokens[2]

@@ -11,6 +11,7 @@
 
 import re
 from difflib import get_close_matches
+from math import isfinite
 
 from .client import fetch_currencies, fetch_rates
 from .exceptions import UnknownCurrencyError
@@ -29,12 +30,14 @@ SYMBOLS = {
     "₺": "TRY",
 }
 
-# Understands "100 USD to EUR", "$42.50 -> gbp", "1,000 in JPY", "100 USD", ...
+# Understands "100 USD to EUR", "$42.50 -> gbp", "1.234,56 in JPY", "-3 to USD", ...
+# [0-9] (not \d) so fullwidth/Arabic-Indic digits are rejected rather than
+# crashing float() later; re.IGNORECASE so "TO"/"IN" work as separators.
 _EXPRESSION = re.compile(
     r"""
     ^\s*
     (?:(?P<from_symbol>[$€£¥₹₪₩฿₺])\s*)?        # optional symbol before the amount
-    (?P<amount>\d[\d,\s]*(?:\.\d+)?)            # the amount, commas allowed
+    (?P<amount>-?[0-9][0-9.,\s]*)               # the amount; parse_amount() validates
     \s*
     (?:(?P<from>[A-Za-z]{3}))?                  # optional source code
     \s*
@@ -46,8 +49,67 @@ _EXPRESSION = re.compile(
     )?
     \s*$
     """,
-    re.VERBOSE,
+    re.VERBOSE | re.IGNORECASE,
 )
+
+
+def parse_amount(text):
+    """Turn the amount part of an expression into a float.
+
+    Accepts US style (``1,234.56``), European style (``1.234,56`` or
+    ``42,50``) and space grouping (``1 000 000``). The rules, so nothing
+    is ever silently misread by a factor of a thousand:
+
+    * with mixed separators, the *last* one is the decimal point
+    * a single dot is always a decimal point (``1.000`` is one)
+    * a single comma followed by exactly three digits is a thousands
+      separator (``1,000`` is a thousand); with fewer digits it is a
+      decimal point (``42,50``), with more it is an error (``1,0000``)
+    * repeated separators are grouping: ``1,000,000`` and ``1.000.000``
+      are both a million
+    """
+    s = re.sub(r"\s+", "", str(text))
+    if not re.fullmatch(r"-?[0-9]+(?:[.,][0-9]+)*", s):
+        raise ValueError(f"could not read the amount {s!r}")
+
+    negative = s.startswith("-")
+    body = s.removeprefix("-")
+    if "." not in body and "," not in body:
+        return -float(body) if negative else float(body)
+
+    pos = max(body.rfind("."), body.rfind(","))
+    sep, tail = body[pos], body[pos + 1 :]
+    integer = body[:pos]
+
+    def bad():
+        return ValueError(f"could not read the amount {s!r}")
+
+    if sep in integer:
+        # Repeated same separator: pure grouping ("1,000,000", "1.000.000").
+        groups = body.split(sep)
+        if not all(len(g) == 3 for g in groups[1:]):
+            raise bad()
+        number = "".join(groups)
+    elif "," in integer or "." in integer:
+        # Mixed separators: the last one is the decimal point, the other
+        # one must group in threes ("1,234.56", "1.234,56").
+        groups = integer.split("," if sep == "." else ".")
+        if not all(len(g) == 3 for g in groups[1:]):
+            raise bad()
+        number = "".join(groups) + "." + tail
+    else:
+        # Single separator: a dot is always decimal; a comma is decimal
+        # too, unless it groups exactly three digits ("1,000" -> one
+        # thousand) after a non-zero integer part ("0,500" reads 0.5).
+        if sep == "," and len(tail) == 3 and integer != "0":
+            number = integer + tail
+        else:
+            if sep == "," and len(tail) > 3 and integer != "0":
+                raise ValueError(f"ambiguous amount {s!r} -- write it without separators")
+            number = integer + "." + tail
+
+    value = float(number)
+    return -value if negative else value
 
 
 def parse_expression(text, default_from=None, default_to=None):
@@ -61,10 +123,10 @@ def parse_expression(text, default_from=None, default_to=None):
     if match is None:
         raise ValueError(f"could not read {text!r} -- try something like '100 USD to EUR'")
     parts = match.groupdict()
-    amount = float(re.sub(r"[,\s]", "", parts["amount"]))
-    from_code = parts["from"] or SYMBOLS.get(parts["from_symbol"]) or default_from
-    to_code = parts["to"] or SYMBOLS.get(parts["to_symbol"]) or default_to
-    return amount, from_code, to_code
+    amount = parse_amount(parts["amount"])
+    frm = parts["from"] or SYMBOLS.get(parts["from_symbol"]) or default_from
+    to = parts["to"] or SYMBOLS.get(parts["to_symbol"]) or default_to
+    return amount, frm.upper() if frm else None, to.upper() if to else None
 
 
 class CurrencyConverter:
@@ -160,6 +222,10 @@ class CurrencyConverter:
             amount, from_currency, to_currency = parse_expression(
                 amount, from_currency, to_currency
             )
+        if not isinstance(amount, (int, float)):
+            amount = float(amount)  # Decimal, Fraction, numpy scalars, ...
+        if not isfinite(amount):
+            raise ValueError(f"amount must be a finite number, got {amount!r}")
         frm = self._resolve(from_currency or self._base)
         to = self._resolve(to_currency or self._base)
         result = amount * self._rates[to] / self._rates[frm]

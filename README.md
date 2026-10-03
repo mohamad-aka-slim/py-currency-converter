@@ -65,9 +65,18 @@ conv.convert("100 usd to €")  # ...or as target
 conv.convert("1,000 usd -> jpy")  # arrows work too: -> => → >
 conv.convert("₺100")  # source only; target = base (EUR)
 
+conv.convert("-50 usd to eur")  # negatives are fine
+conv.convert("1.234,56 usd to eur")  # European decimal comma: 1,234.56
+conv.convert("42,50 usd to eur")  # 42.50, never 4250
+conv.convert("1.000.000 usd to eur")  # a million, dot-grouped
+
 conv.convert(100, "USD", "EUR", ndigits=4)  # 92.4642
 conv.convert(100, "USD", "EUR", ndigits=None)  # unrounded float
 ```
+
+Amounts understand US style (`1,234.56`), European style (`1.234,56`,
+`42,50`) and space grouping (`1 000 000`); anything ambiguous — like
+`1,0000` — is rejected with an explanation instead of misread.
 
 ### Historical snapshots
 

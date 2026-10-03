@@ -46,6 +46,28 @@ class TestErrors:
         assert "is not a number" in capsys.readouterr().err
 
 
+class TestPrecision:
+    """--precision is validated by argparse; nonsense must exit 2, not crash."""
+
+    @pytest.mark.parametrize("value", ["-1", "x", "99", "11"])
+    def test_invalid_precision_exits_cleanly(self, value):
+        with pytest.raises(SystemExit) as excinfo:
+            main(["100", "usd", "eur", "--precision", value])
+        assert excinfo.value.code == 2
+
+    def test_zero_precision(self, conv, capsys):
+        assert main(["100", "usd", "eur", "--precision", "0"]) == 0
+        assert "100 USD = 92 EUR" in capsys.readouterr().out
+
+    def test_european_amount_in_three_token_form(self, conv, capsys):
+        assert main(["42,50", "usd", "eur"]) == 0
+        assert "42.50 USD = 39.30 EUR" in capsys.readouterr().out
+
+    def test_negative_amount(self, conv, capsys):
+        assert main(["-100", "usd", "eur"]) == 0
+        assert "-100.00 USD = -92.46 EUR" in capsys.readouterr().out
+
+
 def test_version_flag(capsys):
     with pytest.raises(SystemExit) as excinfo:
         main(["--version"])
